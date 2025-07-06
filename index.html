@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR/AR Education Research Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .chart-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .model-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .model-svg {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa),
+                        linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+
+        .node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node:hover {
+            transform: scale(1.1);
+        }
+
+        .node-circle {
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+
+        .node-text {
+            font-weight: bold;
+            text-anchor: middle;
+            font-size: 12px;
+            fill: #2c3e50;
+        }
+
+        .link {
+            stroke: #7f8c8d;
+            stroke-width: 2px;
+            marker-end: url(#arrowhead);
+        }
+
+        .link-strong {
+            stroke: #e74c3c;
+            stroke-width: 3px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .nav-tab {
+            padding: 15px 30px;
+            margin: 0 5px;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .results-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .hypothesis-supported {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .hypothesis-rejected {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .bayesian-network {
+            text-align: center;
+        }
+
+        .monte-carlo-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .monte-carlo-results {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header fade-in">
+            <h1>🎯 VR/AR trong Giáo dục Đại học</h1>
+            <p>Nghiên cứu tích hợp mô hình UTAUT và ARCS về trải nghiệm học tập tương tác với công nghệ thực tế ảo và thực tế tăng cường tại Việt Nam</p>
+        </header>
+
+        <!-- Key Statistics -->
+        <div class="stats-grid fade-in">
+            <div class="stat-card">
+                <div class="stat-number">312</div>
+                <div class="stat-label">Sinh viên khảo sát</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">9/11</div>
+                <div class="stat-label">Giả thuyết được hỗ trợ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">0.55</div>
+                <div class="stat-label">R² cho ý định sử dụng</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">0.62</div>
+                <div class="stat-label">R² cho hiệu quả học tập</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">87%</div>
+                <div class="stat-label">Sinh viên hài lòng</div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs fade-in">
+            <button class="nav-tab active" onclick="showTab('model')">📊 Mô hình nghiên cứu</button>
+            <button class="nav-tab" onclick="showTab('demographics')">👥 Thống kê mẫu</button>
+            <button class="nav-tab" onclick="showTab('results')">📈 Kết quả PLS-SEM</button>
+            <button class="nav-tab" onclick="showTab('bayesian')">🔗 Mạng Bayesian</button>
+            <button class="nav-tab" onclick="showTab('montecarlo')">🎲 Monte Carlo</button>
+        </div>
+
+        <!-- Tab Contents -->
+        
+        <!-- Model Tab -->
+        <div id="model" class="tab-content active fade-in">
+            <div class="model-container">
+                <h2 class="chart-title">Mô hình nghiên cứu tích hợp UTAUT-ARCS</h2>
+                <svg class="model-svg" id="model-svg"></svg>
+            </div>
+        </div>
+
+        <!-- Demographics Tab -->
+        <div id="demographics" class="tab-content">
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">Phân bố giới tính</h3>
+                    <canvas id="genderChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Phân bố năm học</h3>
+                    <canvas id="yearChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Phân bố ngành học</h3>
+                    <canvas id="majorChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Kinh nghiệm VR/AR</h3>
+                    <canvas id="experienceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Tab -->
+        <div id="results" class="tab-content">
+            <div class="chart-card">
+                <h3 class="chart-title">Kết quả kiểm định giả thuyết</h3>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Giả thuyết</th>
+                            <th>Quan hệ</th>
+                            <th>Hệ số β</th>
+                            <th>t-value</th>
+                            <th>p-value</th>
+                            <th>Kết luận</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>H1</td>
+                            <td>PE → BI</td>
+                            <td>0.18</td>
+                            <td>2.47</td>
+                            <td>0.014</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H2</td>
+                            <td>EE → BI</td>
+                            <td>0.22</td>
+                            <td>2.98</td>
+                            <td>0.003</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H3</td>
+                            <td>SI → BI</td>
+                            <td>0.15</td>
+                            <td>2.10</td>
+                            <td>0.036</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H4</td>
+                            <td>FC → BI</td>
+                            <td>0.08</td>
+                            <td>1.34</td>
+                            <td>0.181</td>
+                            <td class="hypothesis-rejected">Bác bỏ ✗</td>
+                        </tr>
+                        <tr>
+                            <td>H5</td>
+                            <td>BI → UB</td>
+                            <td>0.45</td>
+                            <td>5.62</td>
+                            <td>0.000</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H6</td>
+                            <td>AT → LE</td>
+                            <td>0.11</td>
+                            <td>2.04</td>
+                            <td>0.042</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H7</td>
+                            <td>RE → LE</td>
+                            <td>0.14</td>
+                            <td>2.68</td>
+                            <td>0.008</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H8</td>
+                            <td>CO → LE</td>
+                            <td>0.16</td>
+                            <td>2.95</td>
+                            <td>0.003</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H9</td>
+                            <td>SA → LE</td>
+                            <td>0.30</td>
+                            <td>5.20</td>
+                            <td>0.000</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H10</td>
+                            <td>SA → BI</td>
+                            <td>0.28</td>
+                            <td>4.11</td>
+                            <td>0.000</td>
+                            <td class="hypothesis-supported">Hỗ trợ ✓</td>
+                        </tr>
+                        <tr>
+                            <td>H11</td>
+                            <td>BI → LE</td>
+                            <td>0.09</td>
+                            <td>1.78</td>
+                            <td>0.075</td>
+                            <td class="hypothesis-rejected">Bác bỏ ✗</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">Hệ số đường dẫn (Path Coefficients)</h3>
+                    <canvas id="pathChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Độ tin cậy và giá trị hội tụ</h3>
+                    <canvas id="reliabilityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bayesian Tab -->
+        <div id="bayesian" class="tab-content">
+            <div class="chart-card bayesian-network">
+                <h3 class="chart-title">Mạng Bayesian - Cấu trúc quan hệ nhân quả</h3>
+                <svg id="bayesian-svg" width="100%" height="500"></svg>
+                <p style="margin-top: 20px; color: #7f8c8d;">
+                    Mạng Bayesian xác nhận các quan hệ chính trong mô hình PLS-SEM và khám phá thêm một số quan hệ gián tiếp giữa các biến.
+                </p>
+            </div>
+        </div>
+
+        <!-- Monte Carlo Tab -->
+        <div id="montecarlo" class="tab-content">
+            <div class="chart-card">
+                <h3 class="chart-title">Kết quả mô phỏng Monte Carlo (10,000 vòng)</h3>
+                <div class="monte-carlo-results">
+                    <div>
+                        <h4>Ý định sử dụng (BI)</h4>
+                        <canvas id="monteCarloBI"></canvas>
+                        <p><strong>Trung bình:</strong> 4.01/5 | <strong>Độ lệch chuẩn:</strong> 0.42</p>
+                        <p><strong>Khoảng tin cậy 95%:</strong> 3.20 - 4.75</p>
+                    </div>
+                    <div>
+                        <h4>Hiệu quả học tập (LE)</h4>
+                        <canvas id="monteCarloLE"></canvas>
+                        <p><strong>Trung bình:</strong> 3.87/5 | <strong>Độ lệch chuẩn:</strong> 0.45</p>
+                        <p><strong>Khoảng tin cậy 95%:</strong> 2.95 - 4.60</p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h4>Phân tích độ nhạy - Các yếu tố ảnh hưởng mạnh nhất</h4>
+                    <canvas id="sensitivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Initialize charts for the active tab
+            setTimeout(() => {
+                if (tabName === 'demographics') initDemographicsCharts();
+                if (tabName === 'results') initResultsCharts();
+                if (tabName === 'bayesian') initBayesianNetwork();
+                if (tabName === 'montecarlo') initMonteCarloCharts();
+            }, 100);
+        }
+
+        // Initialize Model Diagram
+        function initModelDiagram() {
+            const svg = d3.select("#model-svg");
+            const width = svg.node().getBoundingClientRect().width;
+            const height = 600;
+
+            // Clear previous content
+            svg.selectAll("*").remove();
+
+            // Define arrow marker
+            svg.append("defs").append("marker")
+                .attr("id", "arrowhead")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 8)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#7f8c8d");
+
+            // Node data
+            const nodes = [
+                // UTAUT nodes
+                {id: "PE", label: "Kỳ vọng\nhiệu quả", x: 150, y: 100, color: "#3498db", category: "UTAUT"},
+                {id: "EE", label: "Kỳ vọng\nnỗ lực", x: 150, y: 200, color: "#3498db", category: "UTAUT"},
+                {id: "SI", label: "Ảnh hưởng\nxã hội", x: 150, y: 300, color: "#3498db", category: "UTAUT"},
+                {id: "FC", label: "Điều kiện\nthuận lợi", x: 150, y: 400, color: "#3498db", category: "UTAUT"},
+                
+                // ARCS nodes
+                {id: "AT", label: "Sự chú ý", x: 150, y: 500, color: "#f39c12", category: "ARCS"},
+                {id: "RE", label: "Sự liên quan", x: 300, y: 450, color: "#f39c12", category: "ARCS"},
+                {id: "CO", label: "Sự tự tin", x: 300, y: 550, color: "#f39c12", category: "ARCS"},
+                {id: "SA", label: "Sự hài lòng", x: 450, y: 400, color: "#f39c12", category: "ARCS"},
+                
+                // Outcome nodes
+                {id: "BI", label: "Ý định\nsử dụng", x: 600, y: 250, color: "#e74c3c", category: "Outcome"},
+                {id: "LE", label: "Hiệu quả\nhọc tập", x: 600, y: 450, color: "#e74c3c", category: "Outcome"}
+            ];
+
+            // Link data with path coefficients
+            const links = [
+                {source: "PE", target: "BI", coefficient: 0.18, significant: true},
+                {source: "EE", target: "BI", coefficient: 0.22, significant: true},
+                {source: "SI", target: "BI", coefficient: 0.15, significant: true},
+                {source: "FC", target: "BI", coefficient: 0.08, significant: false},
+                {source: "AT", target: "LE", coefficient: 0.11, significant: true},
+                {source: "RE", target: "LE", coefficient: 0.14, significant: true},
+                {source: "CO", target: "LE", coefficient: 0.16, significant: true},
+                {source: "SA", target: "LE", coefficient: 0.30, significant: true},
+                {source: "SA", target: "BI", coefficient: 0.28, significant: true}
+            ];
+
+            // Create links
+            const linkElements = svg.selectAll(".link")
+                .data(links)
+                .enter()
+                .append("line")
+                .attr("class", d => d.significant ? "link link-strong" : "link")
+                .attr("x1", d => nodes.find(n => n.id === d.source).x)
+                .attr("y1", d => nodes.find(n => n.id === d.source).y)
+                .attr("x2", d => nodes.find(n => n.id === d.target).x)
+                .attr("y2", d => nodes.find(n => n.id === d.target).y)
+                .style("stroke", d => d.significant ? "#e74c3c" : "#bdc3c7")
+                .style("stroke-width", d => d.significant ? 3 : 2);
+
+            // Create path coefficient labels
+            svg.selectAll(".path-label")
+                .data(links.filter(d => d.significant))
+                .enter()
+                .append("text")
+                .attr("class", "path-label")
+                .attr("x", d => (nodes.find(n => n.id === d.source).x + nodes.find(n => n.id === d.target).x) / 2)
+                .attr("y", d => (nodes.find(n => n.id === d.source).y + nodes.find(n => n.id === d.target).y) / 2 - 10)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "12px")
+                .attr("font-weight", "bold")
+                .attr("fill", "#e74c3c")
+                .text(d => d.coefficient);
+
+            // Create nodes
+            const nodeElements = svg.selectAll(".node")
+                .data(nodes)
+                .enter()
+                .append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.x}, ${d.y})`);
+
+            nodeElements.append("circle")
+                .attr("class", "node-circle")
+                .attr("r", 40)
+                .attr("fill", d => d.color)
+                .attr("opacity", 0.8);
+
+            nodeElements.append("text")
+                .attr("class", "node-text")
+                .attr("dy", "0.35em")
+                .attr("fill", "white")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .each(function(d) {
+                    const lines = d.label.split('\n');
+                    for (let i = 0; i < lines.length; i++) {
+                        d3.select(this).append("tspan")
+                            .attr("x", 0)
+                            .attr("dy", i === 0 ? 0 : "1.2em")
+                            .text(lines[i]);
+                    }
+                });
+
+            // Add category labels
+            svg.append("text")
+                .attr("x", 100)
+                .attr("y", 50)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "16px")
+                .attr("font-weight", "bold")
+                .attr("fill", "#3498db")
+                .text("UTAUT");
+
+            svg.append("text")
+                .attr("x", 300)
+                .attr("y", 50)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "16px")
+                .attr("font-weight", "bold")
+                .attr("fill", "#f39c12")
+                .text("ARCS");
+
+            svg.append("text")
+                .attr("x", 600)
+                .attr("y", 50)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "16px")
+                .attr("font-weight", "bold")
+                .attr("fill", "#e74c3c")
+                .text("Kết quả");
+        }
+
+        // Initialize Demographics Charts
+        function initDemographicsCharts() {
+            // Gender Chart
+            const genderCtx = document.getElementById('genderChart');
+            if (genderCtx) {
+                new Chart(genderCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Nữ', 'Nam'],
+                        datasets: [{
+                            data: [52.6, 47.4],
+                            backgroundColor: ['#e74c3c', '#3498db'],
+                            borderWidth: 3,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Year Chart
+            const yearCtx = document.getElementById('yearChart');
+            if (yearCtx) {
+                new Chart(yearCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Năm 1', 'Năm 2', 'Năm 3', 'Năm 4', 'Năm 5'],
+                        datasets: [{
+                            label: 'Tỷ lệ (%)',
+                            data: [5, 30, 45, 20, 0],
+                            backgroundColor: '#9b59b6',
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 50
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Major Chart
+            const majorCtx = document.getElementById('majorChart');
+            if (majorCtx) {
+                new Chart(majorCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['CNTT', 'Kinh tế/Quản trị', 'Y Dược', 'Kỹ thuật', 'Kiến trúc', 'Khác'],
+                        datasets: [{
+                            data: [25, 20, 15, 15, 10, 15],
+                            backgroundColor: [
+                                '#3498db',
+                                '#e74c3c',
+                                '#2ecc71',
+                                '#f39c12',
+                                '#9b59b6',
+                                '#95a5a6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Experience Chart
+            const experienceCtx = document.getElementById('experienceChart');
+            if (experienceCtx) {
+                new Chart(experienceCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['< 30 phút/tuần', '30 phút - 1 giờ', '1-2 giờ', '> 2 giờ'],
+                        datasets: [{
+                            label: 'Tỷ lệ (%)',
+                            data: [10, 50, 30, 10],
+                            backgroundColor: '#1abc9c',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 60
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Initialize Results Charts
+        function initResultsCharts() {
+            // Path Coefficients Chart
+            const pathCtx = document.getElementById('pathChart');
+            if (pathCtx) {
+                new Chart(pathCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['EE→BI', 'SA→BI', 'SA→LE', 'PE→BI', 'CO→LE', 'SI→BI', 'RE→LE', 'AT→LE'],
+                        datasets: [{
+                            label: 'Hệ số β',
+                            data: [0.22, 0.28, 0.30, 0.18, 0.16, 0.15, 0.14, 0.11],
+                            backgroundColor: [
+                                '#3498db', '#e74c3c', '#e74c3c', '#3498db', 
+                                '#f39c12', '#3498db', '#f39c12', '#f39c12'
+                            ],
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 0.35
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Reliability Chart
+            const reliabilityCtx = document.getElementById('reliabilityChart');
+            if (reliabilityCtx) {
+                new Chart(reliabilityCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['PE', 'EE', 'SI', 'FC', 'BI', 'AT', 'RE', 'CO', 'SA', 'LE'],
+                        datasets: [{
+                            label: "Cronbach's α",
+                            data: [0.88, 0.82, 0.79, 0.8, 0.85, 0.81, 0.83, 0.86, 0.88, 0.8],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                            pointBackgroundColor: '#3498db'
+                        }, {
+                            label: 'AVE',
+                            data: [0.72, 0.73, 0.71, 0.69, 0.78, 0.65, 0.67, 0.72, 0.75, 0.73],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                            pointBackgroundColor: '#e74c3c'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 1,
+                                grid: {
+                                    color: '#ecf0f1'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Initialize Bayesian Network
+        function initBayesianNetwork() {
+            const svg = d3.select("#bayesian-svg");
+            const width = svg.node().getBoundingClientRect().width;
+            const height = 500;
+
+            svg.selectAll("*").remove();
+
+            // Simplified Bayesian network structure
+            const bayesianNodes = [
+                {id: "PE", x: 100, y: 100, color: "#3498db"},
+                {id: "EE", x: 200, y: 100, color: "#3498db"},
+                {id: "SI", x: 300, y: 100, color: "#3498db"},
+                {id: "FC", x: 400, y: 100, color: "#3498db"},
+                {id: "AT", x: 100, y: 300, color: "#f39c12"},
+                {id: "RE", x: 200, y: 300, color: "#f39c12"},
+                {id: "CO", x: 300, y: 300, color: "#f39c12"},
+                {id: "SA", x: 400, y: 300, color: "#f39c12"},
+                {id: "BI", x: 600, y: 150, color: "#e74c3c"},
+                {id: "LE", x: 600, y: 350, color: "#e74c3c"}
+            ];
+
+            const bayesianLinks = [
+                {source: "PE", target: "BI", strength: 0.18},
+                {source: "EE", target: "BI", strength: 0.22},
+                {source: "SI", target: "BI", strength: 0.15},
+                {source: "PE", target: "SA", strength: 0.25},
+                {source: "EE", target: "SA", strength: 0.20},
+                {source: "AT", target: "RE", strength: 0.30},
+                {source: "RE", target: "CO", strength: 0.35},
+                {source: "SA", target: "BI", strength: 0.28},
+                {source: "SA", target: "LE", strength: 0.30},
+                {source: "CO", target: "LE", strength: 0.16},
+                {source: "RE", target: "LE", strength: 0.14},
+                {source: "AT", target: "LE", strength: 0.11}
+            ];
+
+            // Create links
+            svg.selectAll(".bayesian-link")
+                .data(bayesianLinks)
+                .enter()
+                .append("line")
+                .attr("class", "bayesian-link")
+                .attr("x1", d => bayesianNodes.find(n => n.id === d.source).x)
+                .attr("y1", d => bayesianNodes.find(n => n.id === d.source).y)
+                .attr("x2", d => bayesianNodes.find(n => n.id === d.target).x)
+                .attr("y2", d => bayesianNodes.find(n => n.id === d.target).y)
+                .style("stroke", "#7f8c8d")
+                .style("stroke-width", d => Math.max(1, d.strength * 10))
+                .style("opacity", 0.7);
+
+            // Create nodes
+            const bayesianNodeElements = svg.selectAll(".bayesian-node")
+                .data(bayesianNodes)
+                .enter()
+                .append("g")
+                .attr("class", "bayesian-node")
+                .attr("transform", d => `translate(${d.x}, ${d.y})`);
+
+            bayesianNodeElements.append("circle")
+                .attr("r", 25)
+                .attr("fill", d => d.color)
+                .attr("opacity", 0.8)
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2);
+
+            bayesianNodeElements.append("text")
+                .attr("text-anchor", "middle")
+                .attr("dy", "0.35em")
+                .attr("fill", "white")
+                .attr("font-weight", "bold")
+                .attr("font-size", "12px")
+                .text(d => d.id);
+        }
+
+        // Initialize Monte Carlo Charts
+        function initMonteCarloCharts() {
+            // BI Distribution
+            const biCtx = document.getElementById('monteCarloBI');
+            if (biCtx) {
+                new Chart(biCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8, 5.0],
+                        datasets: [{
+                            label: 'Phân phối BI',
+                            data: [0.02, 0.08, 0.18, 0.25, 0.30, 0.35, 0.28, 0.20, 0.12, 0.05, 0.01],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Mật độ xác suất'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Giá trị BI'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // LE Distribution
+            const leCtx = document.getElementById('monteCarloLE');
+            if (leCtx) {
+                new Chart(leCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.4, 4.6, 4.8],
+                        datasets: [{
+                            label: 'Phân phối LE',
+                            data: [0.01, 0.05, 0.12, 0.20, 0.28, 0.32, 0.28, 0.20, 0.12, 0.06, 0.02],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Mật độ xác suất'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Giá trị LE'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Sensitivity Analysis
+            const sensitivityCtx = document.getElementById('sensitivityChart');
+            if (sensitivityCtx) {
+                new Chart(sensitivityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['SA', 'EE', 'PE', 'CO', 'RE', 'SI', 'AT', 'FC'],
+                        datasets: [{
+                            label: 'Độ nhạy đối với BI (%)',
+                            data: [26, 20, 18, 8, 6, 10, 5, 5],
+                            backgroundColor: '#3498db',
+                            borderRadius: 5
+                        }, {
+                            label: 'Độ nhạy đối với LE (%)',
+                            data: [30, 7, 10, 15, 12, 3, 8, 3],
+                            backgroundColor: '#e74c3c',
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 35,
+                                title: {
+                                    display: true,
+                                    text: 'Độ nhạy (%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initModelDiagram();
+            
+            // Add some animation delays
+            setTimeout(() => {
+                const elements = document.querySelectorAll('.fade-in');
+                elements.forEach((el, index) => {
+                    setTimeout(() => {
+                        el.style.animation = `fadeInUp 0.8s ease-out ${index * 0.1}s both`;
+                    }, index * 100);
+                });
+            }, 100);
+        });
+    </script>
+</body>
+</html>
